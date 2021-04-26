@@ -8,15 +8,15 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 
-def get_data(label_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
+def get_data(csv_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
     img_name, label = [], []
 
-    with open(os.path.join(label_root, mode + '_img.csv'), 'r') as csv_file:
+    with open(os.path.join(csv_root, mode + '_img.csv'), 'r') as csv_file:
         rows = csv.reader(csv_file)
 
         img_name = [row for row in rows]
 
-    with open(os.path.join(label_root, mode + '_label.csv'), 'r') as csv_file:
+    with open(os.path.join(csv_root, mode + '_label.csv'), 'r') as csv_file:
         rows = csv.reader(csv_file)
 
         label = [row for row in rows]
@@ -24,7 +24,7 @@ def get_data(label_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
     return (np.squeeze(img_name), np.squeeze(label))
 
 
-def load_data(root: str, label_root: str) -> tuple[Dataset, Dataset, DataLoader, DataLoader]:
+def load_data(root: str, csv_root: str) -> tuple[Dataset, Dataset, DataLoader, DataLoader]:
     train_transform = transforms.Compose([
         transforms.RandomRotation(90.0),
         transforms.RandomHorizontalFlip(),
@@ -37,19 +37,19 @@ def load_data(root: str, label_root: str) -> tuple[Dataset, Dataset, DataLoader,
         transforms.ToTensor(),
     ])
 
-    train_set = RetinopathyLoader(root, label_root, 'train', train_transform)
-    test_set = RetinopathyLoader(root, label_root, 'test', test_transform)
+    train_set = RetinopathyLoader(root, csv_root, 'train', train_transform)
+    test_set = RetinopathyLoader(root, csv_root, 'test', test_transform)
 
     print(f'train: {len(train_set)}, test: {len(test_set)}')
 
-    train_loader = DataLoader(train_set, batch_size=4, num_workers=8, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=4, num_workers=8, shuffle=False)
+    train_loader = DataLoader(train_set, batch_size=16, num_workers=8, shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=16, num_workers=8, shuffle=False)
 
     return (train_set, test_set, train_loader, test_loader)
 
 
 class RetinopathyLoader(Dataset):
-    def __init__(self, root: str, label_root: str, mode: str, transform: Callable = None) -> None:
+    def __init__(self, root: str, csv_root: str, mode: str, transform: Callable = None) -> None:
         """
         Args:
             root (string): Root path of the dataset.
@@ -59,7 +59,7 @@ class RetinopathyLoader(Dataset):
             self.label (int or float list): Numerical list that store all ground truth label values.
         """
         self.root = root
-        self.img_name, self.label = get_data(label_root, mode)
+        self.img_name, self.label = get_data(csv_root, mode)
         self.mode = mode
         self.transform = transform
 
