@@ -31,24 +31,26 @@ def load_data(root: str, csv_root: str) -> tuple[Dataset, Dataset, DataLoader, D
         transforms.RandomVerticalFlip(),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     test_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    train_set = RetinopathyLoader(root, csv_root, 'train', train_transform)
-    test_set = RetinopathyLoader(root, csv_root, 'test', test_transform)
+    train_set = RetinopathyDataset(root, csv_root, 'train', train_transform)
+    test_set = RetinopathyDataset(root, csv_root, 'test', test_transform)
 
     print(f'train: {len(train_set)}, test: {len(test_set)}')
 
-    train_loader = DataLoader(train_set, batch_size=16, num_workers=8, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=16, num_workers=8, shuffle=False)
+    train_loader = DataLoader(train_set, batch_size=4, num_workers=8, shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=4, num_workers=8, shuffle=False)
 
     return (train_set, test_set, train_loader, test_loader)
 
 
-class RetinopathyLoader(Dataset):
+class RetinopathyDataset(Dataset):
     def __init__(self, root: str, csv_root: str, mode: str, transform: Callable = None) -> None:
         """
         Args:
@@ -62,8 +64,6 @@ class RetinopathyLoader(Dataset):
         self.img_name, self.label = get_data(csv_root, mode)
         self.mode = mode
         self.transform = transform
-
-        # print("> Found %d images..." % (len(self.img_name)))
 
     def __len__(self) -> int:
         """return the size of dataset"""

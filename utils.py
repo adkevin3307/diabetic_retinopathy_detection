@@ -1,4 +1,5 @@
 import argparse
+import matplotlib.pyplot as plt
 
 
 def parse() -> argparse.Namespace:
@@ -15,3 +16,15 @@ def parse() -> argparse.Namespace:
     print(args)
 
     return args
+
+
+def show_history(history: dict[str, list]) -> None:
+    plt.plot(history['loss'], label='train_loss')
+    plt.plot(history['accuracy'], label='train_accuracy')
+
+    if ('val_loss' in history) and ('val_accuracy' in history):
+        plt.plot(history['val_loss'], label='valid_loss')
+        plt.plot(history['val_accuracy'], label='valid_accuracy')
+
+    plt.legend()
+    plt.show()
