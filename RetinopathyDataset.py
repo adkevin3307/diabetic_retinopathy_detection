@@ -4,11 +4,10 @@ import numpy as np
 from PIL import Image
 from typing import Callable, Any
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torch.utils.data import Dataset
 
 
-def get_data(csv_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
+def _get_data(csv_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
     img_name, label = [], []
 
     with open(os.path.join(csv_root, mode + '_img.csv'), 'r') as csv_file:
@@ -24,32 +23,6 @@ def get_data(csv_root: str, mode: str) -> tuple[np.ndarray, np.ndarray]:
     return (np.squeeze(img_name), np.squeeze(label))
 
 
-def load_data(root: str, csv_root: str) -> tuple[Dataset, Dataset, DataLoader, DataLoader]:
-    train_transform = transforms.Compose([
-        transforms.RandomRotation(90.0),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    test_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-
-    train_set = RetinopathyDataset(root, csv_root, 'train', train_transform)
-    test_set = RetinopathyDataset(root, csv_root, 'test', test_transform)
-
-    print(f'train: {len(train_set)}, test: {len(test_set)}')
-
-    train_loader = DataLoader(train_set, batch_size=4, num_workers=8, shuffle=True)
-    test_loader = DataLoader(test_set, batch_size=4, num_workers=8, shuffle=False)
-
-    return (train_set, test_set, train_loader, test_loader)
-
-
 class RetinopathyDataset(Dataset):
     def __init__(self, root: str, csv_root: str, mode: str, transform: Callable = None) -> None:
         """
@@ -61,7 +34,7 @@ class RetinopathyDataset(Dataset):
             self.label (int or float list): Numerical list that store all ground truth label values.
         """
         self.root = root
-        self.img_name, self.label = get_data(csv_root, mode)
+        self.img_name, self.label = _get_data(csv_root, mode)
         self.mode = mode
         self.transform = transform
 
