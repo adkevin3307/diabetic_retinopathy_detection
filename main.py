@@ -15,16 +15,23 @@ if __name__ == '__main__':
 
     args = parse()
 
-    train_loader, test_loader = load_data(args.root, args.csv, args.shape)
+    train_loader, test_loader = load_data(args.root, args.csv, args.input_shape)
 
     net = load_net(args.net, args.pretrained)
+
+    if args.load:
+        net = torch.load(args.load)
 
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
     criterion = nn.CrossEntropyLoss()
 
     model = Model(net, optimizer, criterion)
 
-    train_history = model.train(train_loader, epochs=args.epochs, val_loader=test_loader)
-    # test_history = model.test(test_loader)
+    if args.trainable:
+        history = model.train(train_loader, epochs=args.epochs, val_loader=test_loader)
+        show_history(history)
 
-    # show_history(train_history)
+    if args.save:
+        model.save(args.save)
+
+    model.test(test_loader)

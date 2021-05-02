@@ -1,8 +1,7 @@
+import numpy as np
+from collections import OrderedDict, defaultdict
 import torch
 import torch.nn as nn
-
-import numpy as np
-from collections import OrderedDict
 
 
 class EarlyStopping:
@@ -13,7 +12,7 @@ class EarlyStopping:
         self._best_score = None
         self.early_stop = False
 
-    def __call__(self, score):
+    def __call__(self, score) -> bool:
         if self._best_score == None:
             self._best_score = score
 
@@ -36,6 +35,8 @@ class EarlyStopping:
                 self._best_score = score
                 self._counter = 0
 
+        return self.early_stop
+
 
 class Model:
     def __init__(self, net, optimizer, criterion):
@@ -48,25 +49,22 @@ class Model:
         self.net = self.net.to(self.device)
 
     def train(self, train_loader, epochs, val_loader=None, scheduler=None, early_stopping=None):
-        history = {'loss': [], 'accuracy': []}
-        if val_loader != None:
-            history['val_loss'] = []
-            history['val_accuracy'] = []
+        history = defaultdict(list)
 
         length = len(str(epochs))
 
         for epoch in range(epochs):
             self.net.train()
 
-            correct = 0
             loss = 0.0
+            accuracy = 0
             for i, (x_train, y_train) in enumerate(train_loader):
                 x_train, y_train = x_train.to(self.device), y_train.to(self.device)
                 self.optimizer.zero_grad()
 
                 output = self.net(x_train)
                 _, y_hat = output.max(dim=1)
-                correct += (y_hat == y_train).sum().item()
+                accuracy += (y_hat == y_train).sum().item()
 
                 temp_loss = self.criterion(output, y_train)
                 loss += temp_loss.item()
@@ -79,41 +77,38 @@ class Model:
                 print(f'\rEpochs: {(epoch + 1):>{length}} / {epochs}, [{progress_bar:<20}] {current_progress:>6.2f}%, loss: {temp_loss.item():.3f}', end='')
 
             loss /= len(train_loader)
-            accuracy = correct / len(train_loader.dataset)
+            accuracy /= len(train_loader.dataset)
 
             history['loss'].append(loss)
             history['accuracy'].append(accuracy)
 
-            print(f'\rEpochs: {(epoch + 1):>{length}} / {epochs}, [{"=" * 20}], ', end='')
+            print(f'\rEpochs: {(epoch + 1):>{length}} / {epochs}, [{"=" * 20}], loss: {loss:.3f}, accuracy: {accuracy:.3f}', end='' if val_loader else '\n')
 
-            if val_loader == None:
-                print(f'loss: {loss:.3f}, accuracy: {accuracy:.3f}')
-            else:
-                print(f'loss: {loss:.3f}, accuracy: {accuracy:.3f}, ', end='')
-                val_history = self.test(val_loader, is_test=False, verbose=False)
+            if val_loader:
+                val_history = self.test(val_loader, verbose=False)
 
                 history['val_loss'].append(val_history['loss'])
                 history['val_accuracy'].append(val_history['accuracy'])
 
-                if early_stopping != None:
-                    early_stopping(history[early_stopping.moniter])
-
-                    if early_stopping.early_stop == True:
+                if early_stopping:
+                    if early_stopping(history[early_stopping.moniter]):
                         print('Sweet Point')
                         break
 
-            if scheduler != None:
+                print(f', val_loss: {history["val_loss"][-1]:.3f}, val_accuracy: {history["val_accuracy"][-1]:.3f}')
+
+            if scheduler:
                 scheduler.step()
 
-        return history
+        return dict(history)
 
-    def test(self, test_loader, is_test=True, verbose=True):
+    def test(self, test_loader, verbose=True):
         self.net.eval()
 
         history = {}
 
-        correct = 0
         loss = 0.0
+        accuracy = 0
         predict = []
         with torch.no_grad():
             for i, (x_test, y_test) in enumerate(test_loader):
@@ -121,7 +116,7 @@ class Model:
 
                 output = self.net(x_test)
                 _, y_hat = output.max(dim=1)
-                correct += (y_hat == y_test).sum().item()
+                accuracy += (y_hat == y_test).sum().item()
 
                 predict.append(y_hat)
 
@@ -134,16 +129,14 @@ class Model:
                     print(f'\rTest: [{progress_bar:<20}] {current_progress:6.2f}%, loss: {temp_loss:.3f}', end='')
 
         loss /= len(test_loader)
-        accuracy = correct / len(test_loader.dataset)
+        accuracy /= len(test_loader.dataset)
 
         history['loss'] = loss
         history['accuracy'] = accuracy
         history['predict'] = predict
 
-        prefix = 'test' if is_test == True else 'val'
         if verbose:
-            print(f'\rTest: [{"=" * 20}], ', end='')
-        print(f'{prefix}_loss: {loss:>.3f}, {prefix}_accuracy: {accuracy:.3f}')
+            print(f'\rTest: [{"=" * 20}], test_loss: {loss:>.3f}, test_accuracy: {accuracy:.3f}')
 
         return history
 
@@ -199,23 +192,5 @@ class Model:
         print(f'Train Parameters: {train_parameters}, Total Parameters: {total_parameters}')
         print('-' * 90)
 
-    def export(self, filename, input_shape, verbose=True):
-        input_data = torch.randn(input_shape).to(self.device)
-
-        torch.onnx.export(
-            self.net,
-            input_data,
-            filename,
-            verbose=verbose,
-            input_names=['input'],
-            output_names=['output']
-            # export_params=True,
-            # opset_version=10,
-            # do_constant_folding=True,
-            # input_names=['input'],
-            # output_names=['output'],
-            # dynamic_axes={
-            #     'input': {0: 'batch_size'},
-            #     'output': {0: 'batch_size'}
-            # }
-        )
+    def save(self, save_path: str):
+        torch.save(self.net, save_path)

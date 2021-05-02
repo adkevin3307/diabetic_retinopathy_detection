@@ -15,9 +15,12 @@ def parse() -> argparse.Namespace:
     parser.add_argument('-c', '--csv', type=str, required=True)
     parser.add_argument('-n', '--net', type=str, default='resnet18')
     parser.add_argument('-p', '--pretrained', action='store_true')
-    parser.add_argument('-s', '--shape', type=int, nargs='+', default=[224, 224])
+    parser.add_argument('-i', '--input_shape', type=int, nargs='+', default=[224, 224])
     parser.add_argument('-l', '--lr', type=float, default=1e-3)
     parser.add_argument('-e', '--epochs', type=int, default=10)
+    parser.add_argument('-t', '--trainable', action='store_true')
+    parser.add_argument('-L', '--load', type=str, default=None)
+    parser.add_argument('-S', '--save', type=str, default=None)
 
     args = parser.parse_args()
 
