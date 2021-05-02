@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
