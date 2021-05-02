@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from utils import parse, load_net, load_data, show_history
+from utils import parse, load_net, load_data, show_history, show_confusion_matrix
 from Model import Model
 
 if __name__ == '__main__':
@@ -28,10 +28,15 @@ if __name__ == '__main__':
     model = Model(net, optimizer, criterion)
 
     if args.trainable:
-        history = model.train(train_loader, epochs=args.epochs, val_loader=test_loader)
-        show_history(history)
+        train_history = model.train(train_loader, epochs=args.epochs, val_loader=test_loader)
+        show_history(train_history, f'history_{args.net}_{args.pretrained}.jpg')
+
+        with open(f'score_{args.net}_{args.pretrained}.txt', 'w') as score_file:
+            print(train_history['accuracy'], file=score_file)
+            print(train_history['val_accuracy'], file=score_file)
 
     if args.save:
         model.save(args.save)
 
-    model.test(test_loader)
+    test_history = model.test(test_loader)
+    show_confusion_matrix(test_history['truth'], test_history['predict'], f'confusion_matrix_{args.net}_{args.pretrained}.jpg')

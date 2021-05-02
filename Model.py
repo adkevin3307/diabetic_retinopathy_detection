@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from collections import OrderedDict, defaultdict
 import torch
@@ -48,6 +49,9 @@ class Model:
 
         self.net = self.net.to(self.device)
 
+        self.best_accuracy = 0.0
+        self.best_net = None
+
     def train(self, train_loader, epochs, val_loader=None, scheduler=None, early_stopping=None):
         history = defaultdict(list)
 
@@ -90,6 +94,10 @@ class Model:
                 history['val_loss'].append(val_history['loss'])
                 history['val_accuracy'].append(val_history['accuracy'])
 
+                if history['val_accuracy'][-1] > self.best_accuracy:
+                    self.best_accuracy = history['val_accuracy'][-1]
+                    self.best_net = copy.deepcopy(self.net)
+
                 if early_stopping:
                     if early_stopping(history[early_stopping.moniter]):
                         print('Sweet Point')
@@ -109,6 +117,8 @@ class Model:
 
         loss = 0.0
         accuracy = 0
+
+        truth = []
         predict = []
         with torch.no_grad():
             for i, (x_test, y_test) in enumerate(test_loader):
@@ -118,7 +128,8 @@ class Model:
                 _, y_hat = output.max(dim=1)
                 accuracy += (y_hat == y_test).sum().item()
 
-                predict.append(y_hat)
+                truth.append(y_test.cpu().numpy())
+                predict.append(y_hat.cpu().numpy())
 
                 temp_loss = self.criterion(output, y_test).item()
                 loss += temp_loss
@@ -133,7 +144,9 @@ class Model:
 
         history['loss'] = loss
         history['accuracy'] = accuracy
-        history['predict'] = predict
+
+        history['truth'] = list(np.squeeze(truth))
+        history['predict'] = list(np.squeeze(predict))
 
         if verbose:
             print(f'\rTest: [{"=" * 20}], test_loss: {loss:>.3f}, test_accuracy: {accuracy:.3f}')
@@ -193,4 +206,4 @@ class Model:
         print('-' * 90)
 
     def save(self, save_path: str):
-        torch.save(self.net, save_path)
+        torch.save(self.best_net, save_path)

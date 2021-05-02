@@ -1,6 +1,8 @@
 import argparse
+import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import models, transforms
@@ -24,7 +26,10 @@ def parse() -> argparse.Namespace:
 
     args = parser.parse_args()
 
-    print(args)
+    print('=' * 50)
+    for key, value in vars(args).items():
+        print(f'{key}: {value}')
+    print('=' * 50)
 
     return args
 
@@ -68,7 +73,7 @@ def load_data(root: str, csv_root: str, shape: list) -> tuple[DataLoader, DataLo
     return (train_loader, test_loader)
 
 
-def show_history(history: dict[str, list]) -> None:
+def show_history(history: dict[str, list], name: str) -> None:
     plt.plot(history['loss'], label='train_loss')
     plt.plot(history['accuracy'], label='train_accuracy')
 
@@ -77,4 +82,14 @@ def show_history(history: dict[str, list]) -> None:
         plt.plot(history['val_accuracy'], label='valid_accuracy')
 
     plt.legend()
-    plt.show()
+    plt.savefig(name)
+
+
+def show_confusion_matrix(y_test: list, y_hat: list, name: str) -> None:
+    labels = list(range(5))
+
+    cm = confusion_matrix(y_test, y_hat, labels=labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
+
+    disp.plot()
+    plt.savefig(name)
