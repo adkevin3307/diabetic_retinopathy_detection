@@ -1,5 +1,6 @@
 __pycache__/
 csv_files/
+.vim/
 *.weight
 score_*
 *.jpg
