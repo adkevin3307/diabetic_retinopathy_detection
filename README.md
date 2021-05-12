@@ -1,7 +1,8 @@
 # Diabetic Retinopathy Detection
 
 Diabetic Retinopathy Detection w/ PyTorch
-[Kaggle](https://www.kaggle.com/c/diabetic-retinopathy-detection)
+
+- [Kaggle](https://www.kaggle.com/c/diabetic-retinopathy-detection)
 
 ## Environment
 
